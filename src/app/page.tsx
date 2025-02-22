@@ -1,101 +1,150 @@
-import Image from "next/image";
+"use client"
+
+import { useEffect, useState } from "react";
+import { ArrowLeftRight } from "lucide-react";
+import { currenciesApi } from "@/api/currencies-api";
+import CurrencyInput from "@/components/custom/currency-input";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/custom/loading-spinner";
+import ConfirmSwapDialog from "@/components/custom/confirm-swap-dialog";
+import { cn, formatDate, mockCurrencies } from "@/lib/utils";
+import { AllCurrenciesResponse, Currency, ExchangeRate } from "@/types";
+
+export interface CurrencyInput {
+  amount: string,
+  currency?: Currency,
+}
+
+interface ExchangeRates {
+  meta: {
+    last_updated_at: string;
+  },
+  data: ExchangeRate[];
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [isLoadingRate, setIsLoadingRate] = useState(true);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [from, setFrom] = useState<CurrencyInput>({ amount: '' });
+  const [to, setTo] = useState<CurrencyInput>({ amount: '' });
+  const [mirrored, setMirrored] = useState(false);
+  const [rates, setRates] = useState<ExchangeRates>({ meta: { last_updated_at: '' }, data: [] });
+  const updatedAt = formatDate(new Date(rates.meta.last_updated_at));
+  
+  const [currentRate, setCurrentRate] = useState(0);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const swap = () => {
+    setFrom(to);
+    setTo(from);
+    setMirrored((prev) => !prev);
+  }
+
+  useEffect(() => {
+    fetchCurrencies();
+  }, [])
+
+  useEffect(() => {
+    if(currencies.length < 1) return;
+    fetchRates();
+  }, [currencies.length, from.currency?.code])
+
+  const fetchCurrencies = async () => {
+    try {
+      // const response = await currenciesApi.fetchAllCurrencies();
+      const data = mockCurrencies as AllCurrenciesResponse;
+      // const parsed = Object.values(response.data.data);
+      const parsed = Object.values(data.data);
+      setCurrencies(parsed);
+
+      setIsLoadingRate(false);
+
+      setFrom(prev => ({ ...prev, currency: parsed[0] }));
+      setTo(prev => ({ ...prev, currency: parsed[1] }));
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchRates = async () => {
+    if(!from.currency || !to.currency) return;
+    setIsLoadingRate(true);
+
+    try {
+      const res = await currenciesApi.fetchLatest(from.currency.code);
+      const parsedRates = { ...res.data, data: Object.values(res.data.data) };
+      setRates(parsedRates);
+      const newRate = parsedRates.data.find(r => r.code === to.currency?.code)?.value || 0;
+      setCurrentRate(newRate);
+      setTo(prev => ({ ...prev, amount: (Number(from.amount) * newRate).toFixed(2) }))
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoadingRate(false);
+    }
+  }
+
+  const onFromUpdate = (newValue: CurrencyInput) => {
+    setFrom(newValue);
+
+    if(newValue.amount !== from.amount) {
+      setTo(prev => ({ ...prev, amount: (Number(newValue.amount) * currentRate).toFixed(2) }))
+    }
+  }
+
+  const onToUpdate = (newValue: CurrencyInput) => {
+    setTo(newValue);
+
+    if(newValue.amount !== to.amount) {
+      setFrom(prev => ({ ...prev, amount: (Number(newValue.amount) / currentRate).toFixed(2) }))
+    }
+    
+    if(newValue.currency?.code !== to.currency?.code) {
+      const newRate = (rates.data.find(r => r.code === newValue.currency?.code)?.value) || 0;
+      setCurrentRate(newRate);
+      setTo(prev => ({ ...prev, amount: (Number(from.amount) * newRate).toFixed(2) }))
+    }
+  }
+
+  if(currencies.length === 0) {
+    return (
+      <h1>Server is not available...</h1>
+    )
+  }
+
+  return (
+    <div className="h-full flex justify-center flex-col items-center">
+      <h1 className="text-5xl font-prompt mb-10 mx-auto uppercase">Currency Converter</h1>
+      <div className="w-full p-8 border rounded-xl shadow-lg">
+        <div className="flex justify-between items-center gap-4">
+          <div className="w-full">
+            <label htmlFor="">Amount</label>
+            <CurrencyInput state={from} onUpdate={onFromUpdate} currencies={currencies} />
+          </div>
+          <Button variant="ghost" className="mt-6 hover:bg-transparent" onClick={swap}>
+            <ArrowLeftRight className={cn("!size-5 transition-transform duration-300", mirrored && "scale-x-[-1]")} />
+          </Button>
+          <div className="w-full">
+            <label htmlFor="">Converted to</label>
+            <CurrencyInput state={to} onUpdate={onToUpdate} currencies={currencies} />
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="mt-4 flex items-center gap-4">
+              <h3 className="text-xl font-semibold">
+                1 {from.currency?.code} ≈ {isLoadingRate ? "**" : currentRate} {to.currency?.code}
+              </h3>
+              {isLoadingRate && <LoadingSpinner className="size-6" />}
+            </div>
+            <p className="mt-1 text-gray-500 text-sm">
+              Updated at: <span className="text-primary-foreground">{updatedAt}</span>
+            </p>
+          </div>
+          <ConfirmSwapDialog from={from} to={to} rate={currentRate} onConfirm={() => console.log("Sucesfully swapped")}>
+            <Button className="mt-6" disabled={!from.amount || isLoadingRate}>Preview</Button>
+          </ConfirmSwapDialog>
+        </div>
+      </div>
     </div>
   );
 }
