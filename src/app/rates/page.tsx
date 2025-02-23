@@ -53,7 +53,7 @@ export default function Home() {
   ) || [];
 
   return (
-    <div className="flex flex-col h-screen max-w-screen-lg">
+    <main className="flex flex-col h-screen max-w-screen-lg">
       <h1 className="text-5xl font-prompt mb-5 uppercase">Currency Rates</h1>
       <div className="flex gap-4">
         <div className="flex flex-col gap-1">
@@ -119,15 +119,19 @@ export default function Home() {
         <LoadingSpinner className="mx-auto my-4 size-10" />
       ) : (
         filteredRates.length > 0 ? (
-          filteredRates.map((rate) => (
-            <div key={rate.code} className="flex flex-row">
-              <p>1 {rate.code} = {(1 / rate.value).toFixed(2)} {selectedCurrency?.code}</p>
-            </div>
-          ))
+          <ul className="mt-4">
+            {filteredRates.map((rate) => (
+              <li key={rate.code}>
+                <p>
+                  1 {rate.code} = {(1 / rate.value).toFixed(2)} {selectedCurrency?.code}
+                </p>
+              </li>
+            ))}
+          </ul>
         ) : (
           selectedCurrency && <p>No results found</p>
         )
       )}
-    </div>
+    </main>
   );
 }

@@ -93,7 +93,7 @@ export default function Home() {
   }
 
   return (
-    <div className="h-full flex justify-center flex-col items-center">
+    <main className="h-full flex justify-center flex-col items-center">
       <h1 className="text-5xl font-prompt mb-10 mx-auto uppercase">Currency Converter</h1>
       <div className="w-full p-8 border rounded-xl shadow-lg">
         <div className="flex justify-between items-center gap-4">
@@ -113,7 +113,7 @@ export default function Home() {
           <div>
             <div className="mt-4 flex items-center gap-4">
               <h3 className="text-xl font-semibold">
-                1 {from.currency?.code} ≈ {isPendingRate ? "**" : currentRate} {to.currency?.code}
+                1 {from.currency?.code} ≈ {isPendingRate ? "**" : currentRate.toFixed(2)} {to.currency?.code}
               </h3>
               {isPendingRate && <LoadingSpinner className="size-6" />}
             </div>
@@ -126,6 +126,6 @@ export default function Home() {
           </ConfirmSwapDialog>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

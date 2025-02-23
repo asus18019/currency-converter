@@ -53,7 +53,7 @@ export default function ConfirmSwapDialog({ from, to, rate, onConfirm, children 
             {fromAmount} {fromCurrency?.code} → {toAmount} {toCurrency?.code}
           </InfoRow>
           <InfoRow label="Exchange Rate">
-            1 {fromCurrency?.code} ≈ {rate} {toCurrency?.code}
+            1 {fromCurrency?.code} ≈ {rate.toFixed(2)} {toCurrency?.code}
           </InfoRow>
           <InfoRow label="Fee (0.5%)">
             {totalFee} {toCurrency?.code}

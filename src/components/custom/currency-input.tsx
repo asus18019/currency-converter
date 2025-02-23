@@ -38,7 +38,7 @@ export default function CurrencyInput({ id, state, onUpdate, currencies }: Curre
   };
   
   return (
-    <div className="border border-input rounded-md mt-2 flex items-center focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1">
+    <div className="border border-input rounded-md mt-2 flex items-center focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1">
       <Input 
         id={id}
         className="border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
