@@ -13,7 +13,7 @@ import {
 import { Button } from "../ui/button";
 import InfoRow from "./info-row";
 
-const FEE_PERCENTAGE = 0.005;
+const FEE_PERCENTAGE = 0.005; // 0.5%
 
 interface ConfirmSwapDialogProps {
   from: CurrencyInput,

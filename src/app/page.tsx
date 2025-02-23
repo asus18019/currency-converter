@@ -1,86 +1,61 @@
 "use client"
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftRight } from "lucide-react";
-import { currenciesApi } from "@/api/currencies-api";
+
 import CurrencyInput from "@/components/custom/currency-input";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/custom/loading-spinner";
 import ConfirmSwapDialog from "@/components/custom/confirm-swap-dialog";
-import { cn, formatDate, mockCurrencies } from "@/lib/utils";
-import { AllCurrenciesResponse, Currency, ExchangeRate } from "@/types";
+import { currenciesApi } from "@/api/currencies-api";
+import { Currency } from "@/types";
+import { cn, formatDate } from "@/lib/utils";
 
 export interface CurrencyInput {
   amount: string,
   currency?: Currency,
 }
 
-interface ExchangeRates {
-  meta: {
-    last_updated_at: string;
-  },
-  data: ExchangeRate[];
-}
-
 export default function Home() {
-  const [isLoadingRate, setIsLoadingRate] = useState(true);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [from, setFrom] = useState<CurrencyInput>({ amount: '' });
   const [to, setTo] = useState<CurrencyInput>({ amount: '' });
   const [mirrored, setMirrored] = useState(false);
-  const [rates, setRates] = useState<ExchangeRates>({ meta: { last_updated_at: '' }, data: [] });
-  const updatedAt = formatDate(new Date(rates.meta.last_updated_at));
   
   const [currentRate, setCurrentRate] = useState(0);
+
+  const { data: currencies, isPending, error } = useQuery({
+    queryKey: ['currencies'],
+    queryFn: currenciesApi.fetchAllCurrencies,
+  })
+
+  const { data: rates, isPending: isPendingRate, error: rateError } = useQuery({
+    queryKey: ['rates', from.currency?.code],
+    queryFn: () => currenciesApi.fetchLatest(from.currency?.code || ""),
+    enabled: !!from.currency?.code,
+  })
+
+  useEffect(() => {
+    if(!currencies) return;
+
+    setFrom(prev => ({ ...prev, currency: currencies[0] }));
+    setTo(prev => ({ ...prev, currency: currencies[1] }));
+  }, [currencies])
+
+  useEffect(() => {
+    if(!rates) return;
+
+    const newRate = rates.data.find(r => r.code === to.currency?.code)?.value || 0;
+    setCurrentRate(newRate);
+    setTo(prev => ({ ...prev, amount: (Number(from.amount) * newRate).toFixed(2) }));
+  }, [rates, to.currency?.code])
+
+  const updatedAt = formatDate(new Date(rates?.meta?.last_updated_at || ''));
 
   const swap = () => {
     setFrom(to);
     setTo(from);
     setMirrored((prev) => !prev);
-  }
-
-  useEffect(() => {
-    fetchCurrencies();
-  }, [])
-
-  useEffect(() => {
-    if(currencies.length < 1) return;
-    fetchRates();
-  }, [currencies.length, from.currency?.code])
-
-  const fetchCurrencies = async () => {
-    try {
-      // const response = await currenciesApi.fetchAllCurrencies();
-      const data = mockCurrencies as AllCurrenciesResponse;
-      // const parsed = Object.values(response.data.data);
-      const parsed = Object.values(data.data);
-      setCurrencies(parsed);
-
-      setIsLoadingRate(false);
-
-      setFrom(prev => ({ ...prev, currency: parsed[0] }));
-      setTo(prev => ({ ...prev, currency: parsed[1] }));
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  const fetchRates = async () => {
-    if(!from.currency || !to.currency) return;
-    setIsLoadingRate(true);
-
-    try {
-      const res = await currenciesApi.fetchLatest(from.currency.code);
-      const parsedRates = { ...res.data, data: Object.values(res.data.data) };
-      setRates(parsedRates);
-      const newRate = parsedRates.data.find(r => r.code === to.currency?.code)?.value || 0;
-      setCurrentRate(newRate);
-      setTo(prev => ({ ...prev, amount: (Number(from.amount) * newRate).toFixed(2) }))
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsLoadingRate(false);
-    }
   }
 
   const onFromUpdate = (newValue: CurrencyInput) => {
@@ -99,15 +74,21 @@ export default function Home() {
     }
     
     if(newValue.currency?.code !== to.currency?.code) {
-      const newRate = (rates.data.find(r => r.code === newValue.currency?.code)?.value) || 0;
+      const newRate = (rates?.data.find(r => r.code === newValue.currency?.code)?.value) || 0;
       setCurrentRate(newRate);
       setTo(prev => ({ ...prev, amount: (Number(from.amount) * newRate).toFixed(2) }))
     }
   }
 
-  if(currencies.length === 0) {
+  if(isPending) {
     return (
-      <h1>Server is not available...</h1>
+      <h1>Loading...</h1>
+    )
+  }
+
+  if(!currencies || error || rateError) {
+    return (
+      <h1>Unexpected error fetching currencies or exchange rates. Try again later...</h1>
     )
   }
 
@@ -117,31 +98,31 @@ export default function Home() {
       <div className="w-full p-8 border rounded-xl shadow-lg">
         <div className="flex justify-between items-center gap-4">
           <div className="w-full">
-            <label htmlFor="">Amount</label>
-            <CurrencyInput state={from} onUpdate={onFromUpdate} currencies={currencies} />
+            <label htmlFor="amount">Amount</label>
+            <CurrencyInput id="amount" state={from} onUpdate={onFromUpdate} currencies={currencies} />
           </div>
           <Button variant="ghost" className="mt-6 hover:bg-transparent" onClick={swap}>
             <ArrowLeftRight className={cn("!size-5 transition-transform duration-300", mirrored && "scale-x-[-1]")} />
           </Button>
           <div className="w-full">
-            <label htmlFor="">Converted to</label>
-            <CurrencyInput state={to} onUpdate={onToUpdate} currencies={currencies} />
+            <label htmlFor="converted_to">Converted to</label>
+            <CurrencyInput id="converted_to" state={to} onUpdate={onToUpdate} currencies={currencies} />
           </div>
         </div>
         <div className="flex justify-between items-center">
           <div>
             <div className="mt-4 flex items-center gap-4">
               <h3 className="text-xl font-semibold">
-                1 {from.currency?.code} ≈ {isLoadingRate ? "**" : currentRate} {to.currency?.code}
+                1 {from.currency?.code} ≈ {isPendingRate ? "**" : currentRate} {to.currency?.code}
               </h3>
-              {isLoadingRate && <LoadingSpinner className="size-6" />}
+              {isPendingRate && <LoadingSpinner className="size-6" />}
             </div>
             <p className="mt-1 text-gray-500 text-sm">
               Updated at: <span className="text-primary-foreground">{updatedAt}</span>
             </p>
           </div>
           <ConfirmSwapDialog from={from} to={to} rate={currentRate} onConfirm={() => console.log("Sucesfully swapped")}>
-            <Button className="mt-6" disabled={!from.amount || isLoadingRate}>Preview</Button>
+            <Button className="mt-6" disabled={!from.amount || isPendingRate}>Preview</Button>
           </ConfirmSwapDialog>
         </div>
       </div>

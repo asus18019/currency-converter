@@ -27,3 +27,10 @@ export interface ExchangeRatesResponse {
   },
   data: Record<CurrencyCode, ExchangeRate>;
 }
+
+export interface ExchangeRates {
+  meta: {
+    last_updated_at: string;
+  },
+  data: ExchangeRate[];
+}

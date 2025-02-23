@@ -3,6 +3,7 @@ import { Inter, Prompt } from "next/font/google"
 import "./globals.css";
 import Nav from "@/components/custom/nav";
 import { Toaster } from "@/components/ui/sonner";
+import QueryProvider from "@/components/query-provider";
 
 const inter = Inter({ subsets: ['latin'] });
 const prompt = Prompt({ subsets: ['latin'], weight: '700',   variable: '--font-prompt', });
@@ -22,11 +23,13 @@ export default function RootLayout({
       <body
         className={`${inter.className} antialiased`}
       >
-        <div className="flex flex-col h-screen max-w-screen-lg mx-auto">
-          <Nav />
-          {children}
-        </div>
-        <Toaster />
+        <QueryProvider>
+          <div className="flex flex-col h-screen max-w-screen-lg mx-auto">
+            <Nav />
+            {children}
+          </div>
+          <Toaster />
+        </QueryProvider>
       </body>
     </html>
   );

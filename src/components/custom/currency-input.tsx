@@ -19,12 +19,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Currency } from "@/types";
 
 interface CurrencyInputProps {
+  id: string,
   state: CurrencyInputType,
   onUpdate: (value: CurrencyInputType) => void,
   currencies: Currency[],
 }
 
-export default function CurrencyInput({ state, onUpdate, currencies }: CurrencyInputProps) {
+export default function CurrencyInput({ id, state, onUpdate, currencies }: CurrencyInputProps) {
   const [open, setOpen] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +40,7 @@ export default function CurrencyInput({ state, onUpdate, currencies }: CurrencyI
   return (
     <div className="border border-input rounded-md mt-2 flex items-center focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1">
       <Input 
+        id={id}
         className="border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
         value={state.amount}
         onChange={handleChange}
