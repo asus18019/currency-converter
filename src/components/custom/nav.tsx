@@ -1,10 +1,7 @@
-"use client"
+import NavLink from "./nav-link";
+import { NavLink as NavLinkType } from "@/types";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-
-const navLinks = [
+const navLinks: NavLinkType[] = [
   {
     name: "Converter",
     href: "/",
@@ -16,22 +13,9 @@ const navLinks = [
 ];
 
 export default function Nav() {
-  const pathname = usePathname();
-
   return (
     <nav className="flex gap-2 py-4">
-      {navLinks.map(link => (
-        <Link 
-          key={link.href}
-          href={link.href}
-          className={cn(
-            "text-primary-foreground text-base font-semibold rounded-full px-4 py-1 duration-200 hover:bg-gray-200/75",
-            pathname === link.href && "bg-navlink hover:bg-background-hover"
-          )}
-        >
-          {link.name}
-        </Link>
-      ))}
+      {navLinks.map(link => <NavLink key={link.href} link={link} />)}
   </nav>
   )
 }

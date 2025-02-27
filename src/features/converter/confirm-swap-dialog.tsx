@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner"
-import { CurrencyInput } from "@/app/page";
+import { CurrencyInput } from "@/features/converter/converter-view";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "../ui/button";
-import InfoRow from "./info-row";
+import { Button } from "../../components/ui/button";
+import InfoRow from "../../components/custom/info-row";
 
 const FEE_PERCENTAGE = 0.005; // 0.5%
 

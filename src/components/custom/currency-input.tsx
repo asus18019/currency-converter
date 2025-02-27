@@ -6,7 +6,7 @@ import { Check, ChevronDown } from "lucide-react";
  
 import { amountRegExp, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { CurrencyInput as CurrencyInputType } from "@/app/page";
+import { CurrencyInput as CurrencyInputType } from "@/features/converter/converter-view";
 import {
   Command,
   CommandEmpty,

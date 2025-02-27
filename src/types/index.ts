@@ -1,3 +1,8 @@
+export interface NavLink {
+  name: string,
+  href: string,
+}
+
 export type CurrencyCode = string;
 
 export interface Currency {
